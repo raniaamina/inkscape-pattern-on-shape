@@ -152,6 +152,8 @@ class PatternFillExtension(inkex.EffectExtension):
                 if GTK_UI_AVAILABLE:
                     from gi.repository import GLib, Gtk
                     GLib.idle_add(Gtk.main_quit)
+                else:
+                    self.extension_instance.status_data['status'] = 'closed'
             
             elif self.path == '/config':
                 content_length = int(self.headers['Content-Length'])
@@ -234,6 +236,8 @@ class PatternFillExtension(inkex.EffectExtension):
             while self.is_processing or self.status_data['status'] == 'idle':
                 import time
                 time.sleep(0.1)
+            # When browser fallback is used and processing is done, we must shutdown the server
+            server.shutdown()
         
         server.server_close()
 

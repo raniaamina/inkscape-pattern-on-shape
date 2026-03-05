@@ -1,3 +1,7 @@
 *.log
 sample.svg
 tempfiles/*.svg
+results/*
+tempfiles/*.png
+*.zip
+*.md5
