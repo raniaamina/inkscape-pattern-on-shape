@@ -30,6 +30,13 @@ except (ImportError, ValueError):
     except:
         GTK_UI_AVAILABLE = False
 
+# Try to load pywebview as fallback for Windows/macOS
+try:
+    import webview
+    PYWEBVIEW_AVAILABLE = True
+except ImportError:
+    PYWEBVIEW_AVAILABLE = False
+
 # Redirect stderr to a log file
 log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'extension_debug.log')
 log_file = open(log_path, 'w')
@@ -129,6 +136,13 @@ class PatternFillExtension(inkex.EffectExtension):
                     except:
                         pass
                 self.wfile.write(json.dumps(config_data).encode('utf-8'))
+            elif self.path == '/heartbeat':
+                import time
+                self.extension_instance.last_heartbeat = time.time()
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'status': 'ok'}).encode('utf-8'))
             else:
                 super().do_GET()
 
@@ -152,6 +166,11 @@ class PatternFillExtension(inkex.EffectExtension):
                 if GTK_UI_AVAILABLE:
                     from gi.repository import GLib, Gtk
                     GLib.idle_add(Gtk.main_quit)
+                elif PYWEBVIEW_AVAILABLE and hasattr(self.extension_instance, 'webview_window') and self.extension_instance.webview_window is not None:
+                    # In pywebview, destroy the window explicitly from the backend. 
+                    # The system will naturally exit the webview.start() loop in run_web_ui.
+                    self.extension_instance.webview_window.destroy()
+                    self.extension_instance.status_data['status'] = 'closed'
                 else:
                     self.extension_instance.status_data['status'] = 'closed'
             
@@ -226,19 +245,59 @@ class PatternFillExtension(inkex.EffectExtension):
         
         url = f"http://localhost:{port}/index.html"
         
-        if GTK_UI_AVAILABLE:
+        # Determine preferred UI Backend
+        ui_backend = "auto"
+        config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r') as f:
+                    config_data = json.load(f)
+                    ui_backend = config_data.get('ui_backend', 'auto')
+            except:
+                pass
+        
+        use_gtk = False
+        use_webview = False
+        
+        if ui_backend == "gtk" and GTK_UI_AVAILABLE:
+            use_gtk = True
+        elif ui_backend == "pywebview" and PYWEBVIEW_AVAILABLE:
+            use_webview = True
+        elif ui_backend == "browser":
+            pass # leave both false
+        else: # auto or fallback
+            if GTK_UI_AVAILABLE:
+                use_gtk = True
+            elif PYWEBVIEW_AVAILABLE:
+                use_webview = True
+
+        if use_gtk:
             heartbeat_id = GLib.timeout_add(100, lambda: True)
             GLib.idle_add(self._launch_gtk_window, url, server)
             Gtk.main()
             GLib.source_remove(heartbeat_id)
+        elif use_webview:
+            self.webview_window = webview.create_window('Pattern Fill', url, width=850, height=850, resizable=True)
+            # When webview window is closed by user (e.g hitting the OS native X button),
+            # webview.start() finishes.
+            webview.start()
+            # Mark status closed just in case user hit OS X button instead of UI Cancel button.
+            self.status_data['status'] = 'closed'
         else:
+            import time
+            self.last_heartbeat = time.time()
+            start_time = time.time()
             webbrowser.open(url)
             while self.is_processing or self.status_data['status'] == 'idle':
-                import time
-                time.sleep(0.1)
-            # When browser fallback is used and processing is done, we must shutdown the server
-            server.shutdown()
-        
+                time.sleep(0.5)
+                # If we haven't received a heartbeat in 3 seconds, and we've given the browser 
+                # at least 15 seconds to initially open and load the page, assume it was closed.
+                if time.time() - self.last_heartbeat > 3.0 and time.time() - start_time > 15.0:
+                    self.status_data['status'] = 'closed'
+                    break
+
+        # Ensure server is shutdown on all platforms when UI finishes.
+        server.shutdown()
         server.server_close()
 
     def _launch_gtk_window(self, url, server):
@@ -480,5 +539,10 @@ class PatternFillExtension(inkex.EffectExtension):
         self.run_web_ui()
 
 if __name__ == '__main__':
-    PatternFillExtension().run()
-
+    try:
+        PatternFillExtension().run()
+    finally:
+        try:
+            log_file.close()
+        except:
+            pass

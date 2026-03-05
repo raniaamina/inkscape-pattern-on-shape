@@ -232,6 +232,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (config.rotate_max) document.getElementById('rotate_max').value = config.rotate_max;
                 if (config.padding) document.getElementById('padding').value = config.padding;
                 if (config.gap) document.getElementById('gap').value = config.gap;
+
+                const backendSelect = document.getElementById('ui_backend');
+                if (config.ui_backend && backendSelect) backendSelect.value = config.ui_backend;
             }
         } catch (err) {
             console.error("Failed to load config:", err);
@@ -240,6 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function saveConfig() {
         const formData = new FormData(form);
+        const backendSelect = document.getElementById('ui_backend');
         const config = {
             container_id: containerSelect.value,
             count: formData.get('count'),
@@ -248,7 +252,8 @@ document.addEventListener('DOMContentLoaded', () => {
             rotate_min: formData.get('rotate_min'),
             rotate_max: formData.get('rotate_max'),
             padding: formData.get('padding'),
-            gap: formData.get('gap')
+            gap: formData.get('gap'),
+            ui_backend: backendSelect ? backendSelect.value : "auto"
         };
         try {
             await fetch('/config', {
@@ -265,6 +270,10 @@ document.addEventListener('DOMContentLoaded', () => {
     form.querySelectorAll('input').forEach(input => {
         input.addEventListener('input', saveConfig);
     });
+    const backendSelect = document.getElementById('ui_backend');
+    if (backendSelect) {
+        backendSelect.addEventListener('change', saveConfig);
+    }
     containerSelect.addEventListener('change', () => {
         saveConfig();
         const selectedObj = currentSelection.find(i => i.id === containerSelect.value);
@@ -595,4 +604,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initSelection();
+
+    // Heartbeat to keep backend alive when running in browser mode
+    setInterval(() => {
+        fetch('/heartbeat').catch(() => { });
+    }, 500);
 });
