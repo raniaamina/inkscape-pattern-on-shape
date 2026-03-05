@@ -12,7 +12,7 @@ Built with a custom GTK+/WebKit2 User Interface, it provides a much richer and m
 
 1. **Select Container**: In Inkscape, select the object you want to use as the boundary/container.
 2. **Select Patterns**: Select one or more objects you want to scatter inside that container.
-3. **Launch Extension**: Group them (or just keep them selected together) and run the extension from `Extensions > Generate from Path > Pattern on Shape...`
+3. **Launch Extension**: Group them (or just keep them selected together) and run the extension from `Extensions > Content Manager > Pattern on Shape...`
 4. **Configure Settings**:
     - Choose your boundary shape from the **1. Container** dropdown.
     - Check the objects you want to use in the **2. Patterns** grid.
