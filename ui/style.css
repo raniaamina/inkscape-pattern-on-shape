@@ -156,7 +156,7 @@ header p {
 
 .preview-area {
     flex: 2;
-    padding: 30px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
 }
@@ -184,7 +184,7 @@ header p {
 .thumbnail-preview {
     flex: 1;
     min-height: 250px;
-    max-height: 50vh;
+    max-height: 40vh;
     background: #d1d1d1;
     border-radius: 16px;
     border: 1px dashed var(--border-color);
@@ -220,8 +220,8 @@ header p {
 .controls-area {
     background: var(--panel-left);
     border-top: 1px solid var(--border-color);
-    padding: 24px 30px;
-    max-height: 400px;
+    padding: 24px;
+    /* max-height: 400px; */
     overflow-y: auto;
 }
 
@@ -232,7 +232,7 @@ header p {
     display: block;
 }
 
-input,
+input:not([type="checkbox"]),
 select {
     width: 100%;
     background-color: #1a1a1a !important;
@@ -253,11 +253,15 @@ option {
     color: #ffffff;
 }
 
-input:focus,
+input:not([type="checkbox"]):focus,
 select:focus {
     border-color: var(--accent-orange);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.2);
+}
+
+input[type="checkbox"] {
+    accent-color: var(--accent-orange);
 }
 
 .row-group {
@@ -310,6 +314,23 @@ select:focus {
     background: rgba(255, 255, 255, 0.05);
     color: var(--text-primary);
     border-color: var(--text-secondary);
+}
+
+.error-log-box {
+    margin-top: 16px;
+    padding: 12px;
+    border: 1px solid #ff4d4d;
+    background-color: rgba(255, 77, 77, 0.1);
+    border-radius: 8px;
+    color: #ffb3b3;
+    font-size: 0.85rem;
+    max-height: 150px;
+    overflow-y: auto;
+    word-break: break-word;
+}
+
+.error-log-box.hidden {
+    display: none;
 }
 
 /* Generate + Close row in right panel */

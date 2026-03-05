@@ -1,2 +1,3 @@
 *.log
 sample.svg
+tempfiles/*.svg

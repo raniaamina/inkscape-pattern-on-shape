@@ -11,7 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewArea = document.getElementById('thumbnail-preview');
     const previewStatus = document.getElementById('preview-status');
     const savePreviewBtn = document.getElementById('btn-save-preview');
-
+    const selectAllPatternsBtn = document.getElementById('select-all-patterns');
+    const errorLogBox = document.getElementById('error-log-box');
     const testPath = document.getElementById('test-path');
     const testSvg = document.getElementById('test-svg');
 
@@ -19,6 +20,24 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSelection = [];
     let selectedPatternIds = new Set();
     let currentPlacedObjects = [];
+
+    // --- Select All Logic ---
+    if (selectAllPatternsBtn) {
+        selectAllPatternsBtn.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            const allItems = patternGrid.querySelectorAll('.pattern-item');
+            allItems.forEach(item => {
+                const id = item.dataset.id;
+                if (isChecked) {
+                    item.classList.add('selected');
+                    selectedPatternIds.add(id);
+                } else {
+                    item.classList.remove('selected');
+                    selectedPatternIds.delete(id);
+                }
+            });
+        });
+    }
 
     // --- Preview Zoom/Pan ---
     let zoomLevel = 1;
@@ -134,6 +153,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     gridItem.classList.add('selected');
                     selectedPatternIds.add(id);
+                }
+
+                // Sync select all checkbox
+                const allItems = patternGrid.querySelectorAll('.pattern-item');
+                if (selectAllPatternsBtn) {
+                    selectAllPatternsBtn.checked = (selectedPatternIds.size === allItems.length) && (allItems.length > 0);
                 }
             });
 
@@ -489,15 +514,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateProgress(percent, message, state = "normal") {
         progressBar.style.width = `${percent}%`;
-        statusMessage.textContent = message;
 
         if (state === "error") {
             progressBar.classList.add('error');
             previewStatus.style.color = "var(--error-color)";
             previewStatus.textContent = "Error";
+
+            // Clear right-panel status message and let the progress bar stay red
+            statusMessage.textContent = "";
+
+            if (errorLogBox) {
+                errorLogBox.textContent = message;
+                errorLogBox.classList.remove('hidden');
+            }
         } else {
             progressBar.classList.remove('error');
             previewStatus.style.color = "var(--success-color)";
+            statusMessage.textContent = message;
+
+            if (errorLogBox) {
+                errorLogBox.classList.add('hidden');
+            }
         }
     }
 

@@ -30,13 +30,22 @@
             <div class="form-section flex-grow">
                 <h3>2. Patterns</h3>
                 <div class="form-group">
-                    <label>Select objects to scatter:</label>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="margin-bottom: 0;">Select objects to scatter:</label>
+                        <input type="checkbox" id="select-all-patterns" checked
+                            style="width: 18px; height: 18px; margin: 0; cursor: pointer;" title="Select/Deselect All">
+                    </div>
                     <div id="pattern-grid" class="pattern-grid">
                         <!-- Populated by JS -->
                     </div>
                 </div>
                 <button type="button" class="btn-preview-left" id="btn-preview">Test Preview</button>
                 <button type="button" class="btn-save-left" id="btn-save-preview">Save SVG Preview</button>
+
+                <div id="error-log-box" class="error-log-box hidden">
+                    <!-- Errors will be injected here -->
+                </div>
             </div>
         </aside>
 
