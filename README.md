@@ -10,7 +10,7 @@ Built with a custom GTK+/WebKit2 User Interface, it provides a much richer and m
 
 ## How to Use
 
-<a href="https://www.youtube.com/watch?v=yiHe3MkBlbU"><img src="preview.webp"><a>
+<a href="https://www.youtube.com/watch?v=yiHe3MkBlbU"><img src="preview.webp"><br>Click to View Demo on Youtube</br><a>
 
 
 1. **Select Container**: In Inkscape, select the object you want to use as the boundary/container.
