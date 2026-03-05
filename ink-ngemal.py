@@ -239,7 +239,7 @@ class PatternFillExtension(inkex.EffectExtension):
 
     def _launch_gtk_window(self, url, server):
         window = Gtk.Window(title="Pattern Fill")
-        window.set_default_size(550, 850)
+        window.set_default_size(850, 850)
         window.set_position(Gtk.WindowPosition.CENTER)
         window.set_resizable(True) # Allowed resizing as per user request
         
