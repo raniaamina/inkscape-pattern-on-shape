@@ -184,6 +184,7 @@ header p {
 .thumbnail-preview {
     flex: 1;
     min-height: 250px;
+    max-height: 50vh;
     background: #d1d1d1;
     border-radius: 16px;
     border: 1px dashed var(--border-color);
@@ -289,6 +290,26 @@ select:focus {
 
 .btn-preview-left:hover {
     background: var(--surface-hover);
+}
+
+.btn-save-left {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: 1px dashed var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.btn-save-left:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
 }
 
 /* Generate + Close row in right panel */

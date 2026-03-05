@@ -169,6 +169,34 @@ class PatternFillExtension(inkex.EffectExtension):
                 self.end_headers()
                 self.wfile.write(json.dumps({'status': 'saved'}).encode('utf-8'))
 
+            elif self.path == '/save_preview':
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                data = json.loads(post_data.decode('utf-8'))
+                svg_content = data.get('svg', '')
+
+                results_dir = os.path.join(os.path.dirname(__file__), 'results')
+                if not os.path.exists(results_dir):
+                    os.makedirs(results_dir)
+
+                import time
+                filename = f"preview_{int(time.time())}.svg"
+                filepath = os.path.join(results_dir, filename)
+
+                try:
+                    with open(filepath, 'w') as f:
+                        f.write(svg_content)
+                    
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'status': 'saved', 'filename': filename}).encode('utf-8'))
+                except Exception as e:
+                    self.send_response(500)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'status': 'error', 'message': str(e)}).encode('utf-8'))
+
     def __init__(self):
         super().__init__()
         self.status_data = {"status": "idle", "progress": 0, "message": ""}
@@ -370,28 +398,47 @@ class PatternFillExtension(inkex.EffectExtension):
                 }
             else:
                 # === ACTUAL GENERATE ===
-                parent = container.getparent()
-                result_group = parent.add(Group())
+                try:
+                    from inkex import Transform, Group
+                    from lxml import etree
+                    SVG_NS = 'http://www.w3.org/2000/svg'
+                except ImportError:
+                    from inkex.transforms import Transform
+                    from inkex import Group
+                    from lxml import etree
+                    SVG_NS = 'http://www.w3.org/2000/svg'
+
+                # We place into a group directly under the SVG root to ensure 
+                # document-space coordinates (rx, ry) match perfectly.
+                result_group = self.svg.add(Group())
                 result_group.set('id', f"pattern_{random.randint(1000,9999)}")
                 
                 total = len(placed_objects)
                 for i, obj in enumerate(placed_objects):
-                    if i % 5 == 0:
+                    if i % 10 == 0:
                         self.status_data.update({
                             "progress": 20 + int(70 * (i / total if total > 0 else 1)),
                             "message": f"Inserting object {i+1}/{total}..."
                         })
                     
-                    seed = self.svg.getElementById(obj['seed_id'])
-                    if seed is not None:
-                        clone = seed.copy()
-                        clone.set('transform', obj['transform'])
-                        result_group.append(clone)
+                    try:
+                        # Use the exact SVG string from the preview
+                        # This ensures visual identity (styles, attributes, etc.)
+                        svg_str = f'<g xmlns="{SVG_NS}" transform="{obj["transform"]}">{obj["svg"]}</g>'
+                        node = etree.fromstring(svg_str.encode('utf-8'))
+                        result_group.append(node)
+                    except Exception as e:
+                        # Fallback to copy if string parsing fails
+                        seed = self.svg.getElementById(obj['seed_id'])
+                        if seed is not None:
+                            clone = seed.copy()
+                            clone.set('transform', obj['transform'])
+                            result_group.append(clone)
 
                 self.status_data = {
                     "status": "completed", 
                     "progress": 100, 
-                    "message": f"Done! {len(placed_objects)} objects placed. Closing..."
+                    "message": f"Done! {len(placed_objects)} objects placed."
                 }
                 
                 if GTK_UI_AVAILABLE:

@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const patternGrid = document.getElementById('pattern-grid');
     const previewArea = document.getElementById('thumbnail-preview');
     const previewStatus = document.getElementById('preview-status');
+    const savePreviewBtn = document.getElementById('btn-save-preview');
 
     const testPath = document.getElementById('test-path');
     const testSvg = document.getElementById('test-svg');
@@ -447,6 +448,39 @@ document.addEventListener('DOMContentLoaded', () => {
             await fetch('/close', { method: 'POST' });
         } catch (err) {
             console.error(err);
+        }
+    });
+
+    savePreviewBtn.addEventListener('click', async () => {
+        const svgElement = previewArea.querySelector('svg');
+        if (!svgElement) {
+            updateProgress(0, "No preview to save!", "error");
+            return;
+        }
+
+        try {
+            savePreviewBtn.disabled = true;
+            savePreviewBtn.textContent = "Saving...";
+
+            const svgData = svgElement.outerHTML;
+            const response = await fetch('/save_preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ svg: svgData })
+            });
+
+            const result = await response.json();
+            if (result.status === 'saved') {
+                updateProgress(100, `Saved to: ${result.filename}`, "normal");
+            } else {
+                throw new Error(result.message || "Failed to save");
+            }
+        } catch (err) {
+            console.error("Save preview error:", err);
+            updateProgress(0, `Save failed: ${err.message}`, "error");
+        } finally {
+            savePreviewBtn.disabled = false;
+            savePreviewBtn.textContent = "Save SVG Preview";
         }
     });
 
