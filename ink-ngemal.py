@@ -272,12 +272,14 @@ class PatternFillExtension(inkex.EffectExtension):
                 use_webview = True
 
         if use_gtk:
+            self.active_backend = 'gtk'
             heartbeat_id = GLib.timeout_add(100, lambda: True)
             GLib.idle_add(self._launch_gtk_window, url, server)
             Gtk.main()
             GLib.source_remove(heartbeat_id)
         elif use_webview:
-            self.webview_window = webview.create_window('Pattern Fill', url, width=850, height=850, resizable=True)
+            self.active_backend = 'webview'
+            self.webview_window = webview.create_window('Pattern Fill', url, width=450, height=650, resizable=True)
             # When webview window is closed by user (e.g hitting the OS native X button),
             # webview.start() finishes.
             webview.start()
@@ -291,6 +293,7 @@ class PatternFillExtension(inkex.EffectExtension):
             
             # Try to launch Chromium/Edge/Firefox in App Mode
             app_launched = False
+            self.app_process = None
             browser_paths = [
                 # Edge usually exists on Windows 10/11
                 r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
@@ -307,8 +310,9 @@ class PatternFillExtension(inkex.EffectExtension):
                         # Use subprocess.Popen to launch the browser without blocking Python
                         try:
                             # Edge/Chrome app mode
-                            subprocess.Popen([b_path, f"--app={url}", "--window-size=850,850"])
+                            self.app_process = subprocess.Popen([b_path, f"--app={url}", "--window-size=850,850"])
                             app_launched = True
+                            self.active_backend = 'app'
                             break
                         except Exception as e:
                             # log the error to debug log
@@ -318,6 +322,7 @@ class PatternFillExtension(inkex.EffectExtension):
             
             # If we're not on Windows or finding the browser failed, fallback to system default
             if not app_launched:
+                self.active_backend = 'browser'
                 webbrowser.open(url)
                 
             while self.is_processing or self.status_data['status'] == 'idle':
@@ -327,6 +332,12 @@ class PatternFillExtension(inkex.EffectExtension):
                 if time.time() - self.last_heartbeat > 3.0 and time.time() - start_time > 15.0:
                     self.status_data['status'] = 'closed'
                     break
+
+            if app_launched and self.app_process:
+                try:
+                    self.app_process.terminate()
+                except:
+                    pass
 
         # Ensure server is shutdown on all platforms when UI finishes.
         server.shutdown()
@@ -548,10 +559,18 @@ class PatternFillExtension(inkex.EffectExtension):
                         "message": f"Success! {len(placed_objects)} objects inserted."
                     }
                     
-                    if GTK_UI_AVAILABLE:
-                        time.sleep(0.5)
+                    # Wait slightly so the UI can fetch the 100% completed status and display it
+                    time.sleep(1.5)
+                    
+                    bg = getattr(self, 'active_backend', None)
+                    if bg == 'gtk':
                         from gi.repository import GLib, Gtk
                         GLib.idle_add(Gtk.main_quit)
+                    elif bg == 'webview':
+                        try:
+                            self.webview_window.destroy()
+                        except:
+                            pass
 
                 except Exception as e:
                     raise e

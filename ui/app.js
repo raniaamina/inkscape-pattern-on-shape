@@ -593,6 +593,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearInterval(pollInterval);
                     submitBtn.disabled = false;
                     previewBtn.disabled = false;
+
+                    // Specific logic to cleanly self-close the window on Completion
+                    if (state.status === 'completed') {
+                        setTimeout(() => {
+                            // Notify backend we're deliberately closing
+                            fetch('/close').catch(() => { });
+                            // Self-close the window (works automatically for App Mode windows)
+                            window.open('', '_self', '');
+                            window.close();
+                        }, 1000); // 1-second delay so user can read the success message
+                    }
                 }
             } catch (err) {
                 console.error("Polling error:", err);
