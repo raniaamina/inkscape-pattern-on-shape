@@ -1,0 +1,10 @@
+{
+    "container_id": "path123",
+    "count": "200",
+    "scale_min": "0.4",
+    "scale_max": "0.7",
+    "rotate_min": "-45",
+    "rotate_max": "45",
+    "padding": "3",
+    "gap": "2"
+}

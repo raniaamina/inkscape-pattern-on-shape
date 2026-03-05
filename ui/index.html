@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pattern Fill</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Panel Kiri: Selection & Patterns -->
+        <aside class="left-panel">
+            <header>
+                <h1>Pattern on Shape</h1>
+                <p>by Rania Amina</p>
+            </header>
+
+            <div class="form-section">
+                <h3>1. Container</h3>
+                <div class="form-group">
+                    <label for="container_id">Boundary Shape:</label>
+                    <select id="container_id" name="container_id" required>
+                        <option value="" disabled selected>Select container...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-section flex-grow">
+                <h3>2. Patterns</h3>
+                <div class="form-group">
+                    <label>Select objects to scatter:</label>
+                    <div id="pattern-grid" class="pattern-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <button type="button" class="btn-preview-left" id="btn-preview">Test Preview</button>
+            </div>
+        </aside>
+
+        <!-- Panel Kanan: Preview & Controls -->
+        <main class="right-panel">
+            <section class="preview-area">
+                <div class="preview-header">
+                    <h3>Preview (Container)</h3>
+                    <div id="preview-status" class="preview-status">Ready</div>
+                </div>
+                <div id="thumbnail-preview" class="thumbnail-preview">
+                    <!-- Preview visualization if possible, or just a placeholder for now -->
+                    <div class="empty-state">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        <p>Select a container to preview boundary</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="controls-area">
+                <form id="extension-form">
+                    <div class="form-section">
+                        <h3>3. Settings</h3>
+                        <div class="row-group">
+                            <div class="form-group flex-1">
+                                <label for="count">Quantity:</label>
+                                <input type="number" id="count" name="count" value="40" min="1" max="500">
+                            </div>
+                        </div>
+
+                        <div class="row-group mt-15">
+                            <div class="form-group flex-1">
+                                <label for="scale_min">Scale Min:</label>
+                                <input type="number" id="scale_min" name="scale_min" value="0.5" min="0.1" step="0.1">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="scale_max">Scale Max:</label>
+                                <input type="number" id="scale_max" name="scale_max" value="1.5" min="0.1" step="0.1">
+                            </div>
+                        </div>
+
+                        <div class="row-group mt-15">
+                            <div class="form-group flex-1">
+                                <label for="rotate_min">Rotation Min:</label>
+                                <input type="number" id="rotate_min" name="rotate_min" value="0" min="-360" max="360">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="rotate_max">Rotation Max:</label>
+                                <input type="number" id="rotate_max" name="rotate_max" value="360" min="-360" max="360">
+                            </div>
+                        </div>
+
+                        <div class="row-group mt-15">
+                            <div class="form-group flex-1">
+                                <label for="padding">Padding (%):</label>
+                                <input type="number" id="padding" name="padding" value="25" min="0" max="200" step="1">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="gap">Gap (px):</label>
+                                <input type="number" id="gap" name="gap" value="4" min="0" max="100" step="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-buttons-row">
+                        <button type="submit" class="btn-primary" id="btn-submit">Generate Pattern</button>
+                        <button type="button" class="btn-ghost" id="btn-cancel">Close</button>
+                    </div>
+                </form>
+
+                <div id="status-container" class="hidden">
+                    <div class="progress-bar-container">
+                        <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+                    </div>
+                    <div id="status-message" class="status-message">Ready</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+    <!-- Hidden SVG for point-in-shape testing -->
+    <svg id="test-svg" style="position: absolute; width: 0; height: 0; visibility: hidden; pointer-events: none;">
+        <path id="test-path" d=""></path>
+    </svg>
+</body>
+
+</html>
