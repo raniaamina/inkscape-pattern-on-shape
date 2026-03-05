@@ -46,6 +46,12 @@
                 <div id="error-log-box" class="error-log-box hidden">
                     <!-- Errors will be injected here -->
                 </div>
+
+                <div style="margin-top: auto; padding-top: 24px; text-align: center;">
+                    <a href="#" id="btn-about"
+                        style="color: var(--text-secondary); text-decoration: underline; font-size: 0.85rem; cursor: pointer;">About
+                        Extension</a>
+                </div>
             </div>
         </aside>
 
@@ -126,6 +132,25 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- About Modal -->
+    <div id="about-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="margin-right: 20px;">About</h2>
+                <button type="button" id="btn-close-about" class="btn-close"></button>
+            </div>
+            <div class="modal-body">
+                <p>A simple Inkscape extension to randomly scatter objects (patterns) inside a specific boundary shape
+                    quickly and easily.</p>
+                <div class="modal-meta">
+                    <p><strong>Created with ❤️ by:</strong> Rania Amina</p>
+                    <p><strong>Source:</strong> <a href="#" id="link-github"
+                            style="color: var(--accent-orange); text-decoration: none;">GitHub Repository</a></p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>

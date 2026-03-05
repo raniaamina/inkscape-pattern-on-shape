@@ -16,6 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const testPath = document.getElementById('test-path');
     const testSvg = document.getElementById('test-svg');
 
+    // Modal elements
+    const btnAbout = document.getElementById('btn-about');
+    const btnCloseAbout = document.getElementById('btn-close-about');
+    const aboutModal = document.getElementById('about-modal');
+
     let pollInterval = null;
     let currentSelection = [];
     let selectedPatternIds = new Set();
@@ -36,6 +41,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     selectedPatternIds.delete(id);
                 }
             });
+        });
+    }
+
+    // --- About Modal Logic ---
+    if (btnAbout && aboutModal && btnCloseAbout) {
+        btnAbout.addEventListener('click', () => {
+            aboutModal.classList.remove('hidden');
+        });
+
+        const closeModal = () => {
+            aboutModal.classList.add('hidden');
+        };
+
+        btnCloseAbout.addEventListener('click', closeModal);
+
+        // Close when clicking outside modal content
+        aboutModal.addEventListener('click', (e) => {
+            if (e.target === aboutModal) {
+                closeModal();
+            }
+        });
+
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !aboutModal.classList.contains('hidden')) {
+                closeModal();
+            }
         });
     }
 
