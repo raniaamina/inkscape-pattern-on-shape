@@ -285,9 +285,41 @@ class PatternFillExtension(inkex.EffectExtension):
             self.status_data['status'] = 'closed'
         else:
             import time
+            import subprocess
             self.last_heartbeat = time.time()
             start_time = time.time()
-            webbrowser.open(url)
+            
+            # Try to launch Chromium/Edge/Firefox in App Mode
+            app_launched = False
+            browser_paths = [
+                # Edge usually exists on Windows 10/11
+                r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+                r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+                # Chrome
+                r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+                # Brave, Vivaldi, etc could also be added here, but Edge/Chrome cover 99%
+            ]
+            
+            if os.name == 'nt':
+                for b_path in browser_paths:
+                    if os.path.exists(b_path):
+                        # Use subprocess.Popen to launch the browser without blocking Python
+                        try:
+                            # Edge/Chrome app mode
+                            subprocess.Popen([b_path, f"--app={url}", "--window-size=850,850"])
+                            app_launched = True
+                            break
+                        except Exception as e:
+                            # log the error to debug log
+                            with open(log_path, 'a') as f:
+                                f.write(f"Failed to launch browser: {e}\n")
+                            pass
+            
+            # If we're not on Windows or finding the browser failed, fallback to system default
+            if not app_launched:
+                webbrowser.open(url)
+                
             while self.is_processing or self.status_data['status'] == 'idle':
                 time.sleep(0.5)
                 # If we haven't received a heartbeat in 3 seconds, and we've given the browser 

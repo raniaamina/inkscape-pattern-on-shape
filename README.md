@@ -30,15 +30,7 @@ Built with a custom GTK+/WebKit2 User Interface, it provides a much richer and m
 *   **Inkscape 1.2+**
 *   **Linux**: Works out of the box using GTK+ 3 and WebKit2Gtk.
 *   **macOS / Windows**: The extension will automatically open the UI in your default system browser. 
-    *   *Optional but recommended*: For a true native window experience on Windows/macOS, install `pywebview` into your Inkscape Python environment.
-    *   **Windows Installation Guide**:
-        1. Open **Command Prompt** as Administrator.
-        2. Run these commands to install PIP and PyWebView:
-           ```cmd
-           curl -o get-pip.py https://bootstrap.pypa.io/get-pip.py
-           "C:\Program Files\Inkscape\bin\python.exe" get-pip.py
-           "C:\Program Files\Inkscape\bin\python.exe" -m pip install pywebview
-           ```
+    *   *Note for advanced users*: If you are running Inkscape with a standard Python distribution where `pywebview` is installed, the extension will automatically detect it and run as a native window.
 ## Disclaimer 
 We don't guarantee anything about this tool/extension, so please use it at your own risk. We can't give 24/7 support if you have a problem when using this boilerplate. 
 
