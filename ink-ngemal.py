@@ -11,6 +11,7 @@ import socket
 import random
 import math
 import base64
+import time
 
 # Try to load GTK and WebKit2
 try:
@@ -389,8 +390,6 @@ class PatternFillExtension(inkex.EffectExtension):
 
             if is_preview:
                 # === WEB UI PREVIEW ===
-                # The frontend already has the logic to preview, 
-                # but we'll return a status to confirm we're done.
                 self.status_data = {
                     "status": "completed", 
                     "progress": 100, 
@@ -399,53 +398,68 @@ class PatternFillExtension(inkex.EffectExtension):
             else:
                 # === ACTUAL GENERATE ===
                 try:
-                    from inkex import Transform, Group
-                    from lxml import etree
                     SVG_NS = 'http://www.w3.org/2000/svg'
-                except ImportError:
-                    from inkex.transforms import Transform
-                    from inkex import Group
-                    from lxml import etree
-                    SVG_NS = 'http://www.w3.org/2000/svg'
-
-                # We place into a group directly under the SVG root to ensure 
-                # document-space coordinates (rx, ry) match perfectly.
-                result_group = self.svg.add(Group())
-                result_group.set('id', f"pattern_{random.randint(1000,9999)}")
-                
-                total = len(placed_objects)
-                for i, obj in enumerate(placed_objects):
-                    if i % 10 == 0:
-                        self.status_data.update({
-                            "progress": 20 + int(70 * (i / total if total > 0 else 1)),
-                            "message": f"Inserting object {i+1}/{total}..."
-                        })
                     
-                    try:
-                        # Use the exact SVG string from the preview
-                        # This ensures visual identity (styles, attributes, etc.)
-                        svg_str = f'<g xmlns="{SVG_NS}" transform="{obj["transform"]}">{obj["svg"]}</g>'
-                        node = etree.fromstring(svg_str.encode('utf-8'))
-                        result_group.append(node)
-                    except Exception as e:
-                        # Fallback to copy if string parsing fails
-                        seed = self.svg.getElementById(obj['seed_id'])
-                        if seed is not None:
-                            clone = seed.copy()
-                            clone.set('transform', obj['transform'])
-                            result_group.append(clone)
+                    # 1. Build the result SVG string
+                    items_str = ""
+                    for obj in placed_objects:
+                        items_str += f'<g transform="{obj["transform"]}">{obj["svg"]}</g>\n'
+                    
+                    width = self.svg.get('width', '100%')
+                    height = self.svg.get('height', '100%')
+                    viewbox = self.svg.get('viewBox', f'0 0 {width} {height}')
+                    
+                    full_svg_str = f'''<svg xmlns="{SVG_NS}" 
+                        xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+                        xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+                        width="{width}" height="{height}" viewBox="{viewbox}">
+                        <g id="pattern_container">
+                            {items_str}
+                        </g>
+                    </svg>'''
+                    
+                    # 2. Save to tempfiles/result.svg
+                    temp_dir = os.path.join(os.path.dirname(__file__), 'tempfiles')
+                    if not os.path.exists(temp_dir):
+                        os.makedirs(temp_dir)
+                    
+                    result_path = os.path.join(temp_dir, 'result.svg')
+                    with open(result_path, 'w', encoding='utf-8') as f:
+                        f.write(full_svg_str)
+                    
+                    # 3. Load it back and append
+                    from lxml import etree
+                    with open(result_path, 'rb') as f:
+                        imported_tree = etree.parse(f)
+                        imported_root = imported_tree.getroot()
+                        
+                        container_group = None
+                        for element in imported_root.iter():
+                            if element.get('id') == 'pattern_container':
+                                container_group = element
+                                break
+                        
+                        if container_group is not None:
+                            new_id = f"pattern_{int(time.time())}"
+                            container_group.set('id', new_id)
+                            self.svg.append(container_group)
+                        else:
+                            for child in imported_root:
+                                self.svg.append(child)
 
-                self.status_data = {
-                    "status": "completed", 
-                    "progress": 100, 
-                    "message": f"Done! {len(placed_objects)} objects placed."
-                }
-                
-                if GTK_UI_AVAILABLE:
-                    import time
-                    time.sleep(0.5)
-                    from gi.repository import GLib, Gtk
-                    GLib.idle_add(Gtk.main_quit)
+                    self.status_data = {
+                        "status": "completed", 
+                        "progress": 100, 
+                        "message": f"Success! {len(placed_objects)} objects inserted."
+                    }
+                    
+                    if GTK_UI_AVAILABLE:
+                        time.sleep(0.5)
+                        from gi.repository import GLib, Gtk
+                        GLib.idle_add(Gtk.main_quit)
+
+                except Exception as e:
+                    raise e
                 
         except Exception as e:
             self.status_data = {"status": "error", "progress": 0, "message": f"Error: {str(e)}"}

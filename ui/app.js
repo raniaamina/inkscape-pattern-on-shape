@@ -391,13 +391,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const paramsJson = JSON.stringify(params);
         const isPreview = url.includes('preview');
 
-        // Calculate placement IF it's a preview OR if params changed
-        if (isPreview || paramsJson !== currentParamsJson || currentPlacedObjects.length === 0) {
+        // Calculate placement IF it's a preview OR if we don't have cached data yet
+        // For non-preview submission, we STRICTLY reuse if data exists to ensure parity
+        const needsCalculation = isPreview || currentPlacedObjects.length === 0 || paramsJson !== currentParamsJson;
+
+        if (needsCalculation) {
             console.log("Calculating new placement...");
             currentPlacedObjects = calculatePlacement(params);
             currentParamsJson = paramsJson;
         } else {
-            console.log("Using cached preview placement for submission.");
+            console.log("Reusing existing preview data for final output.");
         }
 
         if (isPreview) {
