@@ -1,10 +1,12 @@
 {
-    "container_id": "path123",
-    "count": "200",
-    "scale_min": "0.4",
-    "scale_max": "0.7",
-    "rotate_min": "-45",
-    "rotate_max": "45",
-    "padding": "3",
-    "gap": "2"
+    "container_id": "rect16-3",
+    "count": "40",
+    "scale_min": "0.5",
+    "scale_max": "1.5",
+    "rotate_min": "0",
+    "rotate_max": "360",
+    "padding": "10",
+    "gap": "4",
+    "allow_overlap": false,
+    "ui_backend": "auto"
 }
