@@ -84,13 +84,16 @@ class PatternFillExtension(inkex.EffectExtension):
                     node_id = node.get('id') or ''
                     node_label = node.label if node.label else node_id
                     
-                    # Get path data if it's a path - transform to document coords!
+                    # Get path data if it's a graphical element - transform to document coords!
                     path_d = ""
-                    if hasattr(node, 'path'):
-                        try:
-                            transformed_path = node.path.transform(node.composed_transform())
+                    try:
+                        # get_path() is more robust for rects, circles, etc. in modern inkex
+                        p = node.get_path() if hasattr(node, 'get_path') else getattr(node, 'path', None)
+                        if p:
+                            transformed_path = p.transform(node.composed_transform())
                             path_d = str(transformed_path)
-                        except Exception:
+                    except Exception:
+                        if hasattr(node, 'path'):
                             path_d = str(node.path)
                     
                     # Detect fill color for container filtering

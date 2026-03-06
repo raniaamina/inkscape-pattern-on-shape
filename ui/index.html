@@ -79,7 +79,17 @@
             <section class="controls-area">
                 <form id="extension-form">
                     <div class="form-section">
-                        <h3>3. Settings</h3>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h3 style="margin-bottom: 0;">3. Settings</h3>
+                            <div style="display: flex; align-items: center;">
+                                <input type="checkbox" id="allow_overlap" name="allow_overlap"
+                                    style="margin-right: 6px; width: 14px; height: 14px; cursor: pointer;">
+                                <label for="allow_overlap"
+                                    style="margin-bottom: 0px; cursor: pointer; font-size: 0.85rem;">Allow
+                                    Overlap</label>
+                            </div>
+                        </div>
                         <div class="row-group">
                             <div class="form-group flex-1">
                                 <label for="count">Quantity:</label>
@@ -168,7 +178,7 @@
     <script src="app.js"></script>
     <!-- Hidden SVG for point-in-shape testing -->
     <svg id="test-svg" style="position: absolute; width: 0; height: 0; visibility: hidden; pointer-events: none;">
-        <path id="test-path" d=""></path>
+        <path id="test-path" d="" fill="black"></path>
     </svg>
 </body>
 

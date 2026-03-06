@@ -232,9 +232,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (config.rotate_max) document.getElementById('rotate_max').value = config.rotate_max;
                 if (config.padding) document.getElementById('padding').value = config.padding;
                 if (config.gap) document.getElementById('gap').value = config.gap;
+                if (config.allow_overlap !== undefined) document.getElementById('allow_overlap').checked = config.allow_overlap;
 
                 const backendSelect = document.getElementById('ui_backend');
                 if (config.ui_backend && backendSelect) backendSelect.value = config.ui_backend;
+
+                // Trigger event to disable/enable padding and gap inputs
+                document.getElementById('allow_overlap').dispatchEvent(new Event('change'));
             }
         } catch (err) {
             console.error("Failed to load config:", err);
@@ -253,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
             rotate_max: formData.get('rotate_max'),
             padding: formData.get('padding'),
             gap: formData.get('gap'),
+            allow_overlap: document.getElementById('allow_overlap').checked,
             ui_backend: backendSelect ? backendSelect.value : "auto"
         };
         try {
@@ -267,9 +272,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Save on any input/select change
-    form.querySelectorAll('input').forEach(input => {
-        input.addEventListener('input', saveConfig);
+    form.querySelectorAll('input, select').forEach(input => {
+        if (input.id !== 'allow_overlap') { // We handle this separately below to avoid double save
+            input.addEventListener('input', saveConfig);
+            input.addEventListener('change', saveConfig);
+        }
     });
+
+    // Toggle padding/gap based on allow_overlap
+    const allowOverlapCheckbox = document.getElementById('allow_overlap');
+    const paddingInput = document.getElementById('padding');
+    const gapInput = document.getElementById('gap');
+
+    allowOverlapCheckbox.addEventListener('change', (e) => {
+        const checked = e.target.checked;
+        paddingInput.disabled = checked;
+        gapInput.disabled = checked;
+
+        // Visual feedback
+        paddingInput.closest('.form-group').style.opacity = checked ? '0.5' : '1';
+        gapInput.closest('.form-group').style.opacity = checked ? '0.5' : '1';
+
+        saveConfig();
+    });
+
     const backendSelect = document.getElementById('ui_backend');
     if (backendSelect) {
         backendSelect.addEventListener('change', saveConfig);
@@ -289,19 +315,61 @@ document.addEventListener('DOMContentLoaded', () => {
         const seeds = currentSelection.filter(i => params.pattern_ids.includes(i.id));
         if (seeds.length === 0) return [];
 
+        // --- Calculate EXACT visual bounding boxes of seeds natively in the browser
+        const seedData = {};
+        const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        tempSvg.style.position = 'absolute';
+        tempSvg.style.visibility = 'hidden';
+        document.body.appendChild(tempSvg);
+
+        for (const seed of seeds) {
+            const contentMatcher = seed.thumbnail.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
+            const innerSvgContent = contentMatcher ? contentMatcher[1] : '';
+
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.innerHTML = innerSvgContent;
+            tempSvg.appendChild(g);
+
+            const box = g.getBBox();
+            seedData[seed.id] = {
+                cx: box.x + box.width / 2,
+                cy: box.y + box.height / 2,
+                width: box.width,
+                height: box.height,
+                innerStr: innerSvgContent
+            };
+            tempSvg.removeChild(g);
+        }
+        document.body.removeChild(tempSvg);
+
         testPath.setAttribute('d', containerObj.path_d);
 
-        const userPadding = (params.padding || 25) / 100;
-        const userGap = (params.gap || 4);
+        const userPadding = params.allow_overlap ? 0 : (params.padding || 25) / 100;
+        const userGap = params.allow_overlap ? 0 : (params.gap || 4);
 
         const bbox = containerObj.bbox;
         const placed = [];
         let skipped = 0;
-        const maxAttempts = 500;
+        const maxAttempts = params.allow_overlap ? 5000 : 500;
 
+        // --- PREPARE STRATIFIED SAMPLING (GRID) ---
+        // This ensures objects don't clump and fill the area uniformly
+        const gridRes = Math.ceil(Math.sqrt(params.count * 1.5));
+        const cells = [];
+        for (let r = 0; r < gridRes; r++) {
+            for (let c = 0; c < gridRes; c++) {
+                cells.push({ r, c });
+            }
+        }
+        // Simple fish-yates shuffle
+        for (let idx = cells.length - 1; idx > 0; idx--) {
+            const j = Math.floor(Math.random() * (idx + 1));
+            [cells[idx], cells[j]] = [cells[j], cells[idx]];
+        }
 
         for (let i = 0; i < params.count; i++) {
             let success = false;
+            const cell = cells[i % cells.length];
 
             for (let attempt = 0; attempt < maxAttempts; attempt++) {
                 const seed = seeds[Math.floor(Math.random() * seeds.length)];
@@ -316,19 +384,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 const scale = baseScale * shrinkFactor;
                 const rotation = params.rotation_min + Math.random() * (params.rotation_max - params.rotation_min);
 
-                const seedBbox = seed.bbox;
-                // Use user-defined padding ratio
-                const radius = (Math.max(seedBbox.width, seedBbox.height) / 2) * scale;
+                const sData = seedData[seed.id];
+                // Use the precise browser-calculated dimensions
+                const radius = (Math.max(sData.width, sData.height) / 2) * scale;
                 const paddedRadius = radius * (1 + userPadding);
 
-                const rx = bbox.left + Math.random() * bbox.width;
-                const ry = bbox.top + Math.random() * bbox.height;
+                // --- JITTERED GRID SAMPLING ---
+                // We pick a spot within a specific grid cell to ensure uniform coverage
+                const cellW = bbox.width / gridRes;
+                const cellH = bbox.height / gridRes;
 
-                // 1. Strict Multi-point Containment Check
+                // If it's a first attempt, stay in the assigned cell. 
+                // Following attempts can drift to nearby cells or be random if it's hard to find a spot.
+                let rx, ry;
+                if (attempt < 10) {
+                    rx = bbox.left + (cell.c * cellW) + Math.random() * cellW;
+                    ry = bbox.top + (cell.r * cellH) + Math.random() * cellH;
+                } else {
+                    rx = bbox.left + Math.random() * bbox.width;
+                    ry = bbox.top + Math.random() * bbox.height;
+                }
+
+                // 1. Containment Check
                 let inside = true;
+
+                if (params.allow_overlap) {
+                    // Overlapping objects still need to stay within the perimeter!
+                    // We only use the base radius without user padding for bounds checking in overlap mode
+                }
+
+                // Strict multipoint check to ensure object bounds stay entirely inside the container shape
                 const pointsToTest = [{ x: rx, y: ry }];
-                const checkRadius = paddedRadius; // Ensure padded area is inside
-                for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 6) {
+                const checkRadius = paddedRadius;
+
+                // Increase sampling points to 16 for better precision at edges
+                for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
                     pointsToTest.push({
                         x: rx + Math.cos(angle) * checkRadius,
                         y: ry + Math.sin(angle) * checkRadius
@@ -350,34 +440,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     let collision = false;
                     let neighborSameSeed = false;
 
-                    for (const p of placed) {
-                        const dx = rx - p.x;
-                        const dy = ry - p.y;
-                        const distSq = dx * dx + dy * dy;
+                    if (!params.allow_overlap) {
+                        for (const p of placed) {
+                            const dx = rx - p.x;
+                            const dy = ry - p.y;
+                            const distSq = dx * dx + dy * dy;
 
-                        // Use user-defined absolute gap
-                        const minDist = paddedRadius + (p.pRadius || p.radius) + userGap;
+                            // Use user-defined absolute gap
+                            const minDist = paddedRadius + (p.pRadius || p.radius) + userGap;
 
-                        if (distSq < minDist * minDist) {
-                            collision = true;
-                            break;
-                        }
+                            if (distSq < minDist * minDist) {
+                                collision = true;
+                                break;
+                            }
 
-                        // Diversity: Avoid same seed too close
-                        const diversityDist = (radius + p.radius) * 4;
-                        if (p.seed_id === seed.id && distSq < diversityDist * diversityDist) {
-                            neighborSameSeed = true;
+                            // Diversity: Avoid same seed too close
+                            const diversityDist = (radius + p.radius) * 4;
+                            if (p.seed_id === seed.id && distSq < diversityDist * diversityDist) {
+                                neighborSameSeed = true;
+                            }
                         }
                     }
 
-                    if (!collision && (!neighborSameSeed || attempt > maxAttempts / 2)) {
-                        const cx = seedBbox.left + seedBbox.width / 2;
-                        const cy = seedBbox.top + seedBbox.height / 2;
-                        const transform = `translate(${rx},${ry}) rotate(${rotation}) scale(${scale}) translate(${-cx},${-cy})`;
-
-                        // Extract content properly
-                        const contentMatcher = seed.thumbnail.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
-                        const innerSvgContent = contentMatcher ? contentMatcher[1] : '';
+                    if (!collision && (params.allow_overlap || !neighborSameSeed || attempt > maxAttempts / 2)) {
+                        const transform = `translate(${rx},${ry}) rotate(${rotation}) scale(${scale}) translate(${-sData.cx},${-sData.cy})`;
 
                         placed.push({
                             x: rx,
@@ -386,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             pRadius: paddedRadius,
                             seed_id: seed.id,
                             transform: transform,
-                            svg: innerSvgContent
+                            svg: sData.innerStr
                         });
                         success = true;
                         break;
@@ -441,7 +527,8 @@ document.addEventListener('DOMContentLoaded', () => {
             rotation_min: parseFloat(formData.get('rotate_min') || 0),
             rotation_max: parseFloat(formData.get('rotate_max') || 0),
             padding: parseFloat(formData.get('padding') || 25),
-            gap: parseFloat(formData.get('gap') || 4)
+            gap: parseFloat(formData.get('gap') || 4),
+            allow_overlap: document.getElementById('allow_overlap').checked
         };
 
         if (!params.container_id) {
