@@ -501,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
 
         const previewSvg = `
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" width="100%" height="100%" style="background:#d1d1d1;">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="${vb}" width="100%" height="100%" style="background:#d1d1d1;">
                 <g style="fill:#111; opacity:0.3;">
                     <path d="${containerObj.path_d}"></path>
                 </g>

@@ -519,6 +519,7 @@ class PatternFillExtension(inkex.EffectExtension):
                     viewbox = self.svg.get('viewBox', f'0 0 {width} {height}')
                     
                     full_svg_str = f'''<svg xmlns="{SVG_NS}" 
+                        xmlns:xlink="http://www.w3.org/1999/xlink"
                         xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
                         xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
                         width="{width}" height="{height}" viewBox="{viewbox}">
