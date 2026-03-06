@@ -5,3 +5,4 @@ results/*
 tempfiles/*.png
 *.zip
 *.md5
+config.json
