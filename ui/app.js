@@ -344,8 +344,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         testPath.setAttribute('d', containerObj.path_d);
 
-        const userPadding = params.allow_overlap ? 0 : (params.padding || 25) / 100;
-        const userGap = params.allow_overlap ? 0 : (params.gap || 4);
+        const userPadding = params.allow_overlap ? 0 : (params.padding !== undefined && params.padding !== null ? params.padding : 25) / 100;
+        const userGap = params.allow_overlap ? 0 : (params.gap !== undefined && params.gap !== null ? params.gap : 4);
 
         const bbox = containerObj.bbox;
         const placed = [];
@@ -374,11 +374,13 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let attempt = 0; attempt < maxAttempts; attempt++) {
                 const seed = seeds[Math.floor(Math.random() * seeds.length)];
 
-                // --- Adaptive Scaling ---
+                // --- Adaptive Scaling (DISABLED to maintain uniform sizes) ---
                 let shrinkFactor = 1.0;
+                /*
                 if (attempt > maxAttempts * 0.8) shrinkFactor = 0.3;
                 else if (attempt > maxAttempts * 0.6) shrinkFactor = 0.5;
                 else if (attempt > maxAttempts * 0.3) shrinkFactor = 0.8;
+                */
 
                 const baseScale = params.scale_min + Math.random() * (params.scale_max - params.scale_min);
                 const scale = baseScale * shrinkFactor;
@@ -397,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // If it's a first attempt, stay in the assigned cell. 
                 // Following attempts can drift to nearby cells or be random if it's hard to find a spot.
                 let rx, ry;
-                if (attempt < 10) {
+                if (attempt < 50) {
                     rx = bbox.left + (cell.c * cellW) + Math.random() * cellW;
                     ry = bbox.top + (cell.r * cellH) + Math.random() * cellH;
                 } else {
@@ -454,8 +456,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 break;
                             }
 
-                            // Diversity: Avoid same seed too close
-                            const diversityDist = (radius + p.radius) * 4;
+                            // Diversity: Avoid same seed too close (Relaxed to 1.5x for better density)
+                            const diversityDist = (radius + p.radius) * 1.5;
                             if (p.seed_id === seed.id && distSq < diversityDist * diversityDist) {
                                 neighborSameSeed = true;
                             }
