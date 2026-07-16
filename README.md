@@ -28,9 +28,16 @@ Built with a custom GTK+/WebKit2 User Interface, it provides a much richer and m
 
 ## Requirements
 *   **Inkscape 1.2+**
-*   **Linux**: Works out of the box using GTK+ 3 and WebKit2Gtk.
+*   **Linux**: Works using GTK+ 3 and WebKit2Gtk. 
+    *   **Native UI Setup**: To use the integrated native window (recommended), install these packages:
+        ```bash
+        sudo apt update
+        sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1
+        ```
+        *(If 4.1 is not found, use `gir1.2-webkit2-4.0`)*
 *   **macOS / Windows**: The extension will automatically open the UI in your default system browser. 
-    *   *Note for advanced users*: If you are running Inkscape with a standard Python distribution where `pywebview` is installed, the extension will automatically detect it and run as a native window.
+    *   *Note*: If `pywebview` is installed in your Python environment, it will run as a native window.
+
 ## Disclaimer 
 We don't guarantee anything about this tool/extension, so please use it at your own risk. We can't give 24/7 support if you have a problem when using this boilerplate. 
 
