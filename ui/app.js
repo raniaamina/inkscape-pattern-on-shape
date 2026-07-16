@@ -342,12 +342,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         document.body.removeChild(tempSvg);
 
-        testPath.setAttribute('d', containerObj.path_d);
+        const hitCanvas = document.createElement('canvas');
+        const hitCtx = hitCanvas.getContext('2d');
+        const containerPath2D = new Path2D(containerObj.path_d);
 
         const userPadding = params.allow_overlap ? 0 : (params.padding !== undefined && params.padding !== null ? params.padding : 25) / 100;
         const userGap = params.allow_overlap ? 0 : (params.gap !== undefined && params.gap !== null ? params.gap : 4);
 
-        const bbox = containerObj.bbox;
+        const bbox = (() => {
+            const tmpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            tmpSvg.style.cssText = 'position:absolute;left:-9999px;top:-9999px;overflow:visible;visibility:hidden;';
+            const tmpPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            tmpPath.setAttribute('d', containerObj.path_d);
+            tmpSvg.appendChild(tmpPath);
+            document.body.appendChild(tmpSvg);
+            const b = tmpPath.getBBox();
+            document.body.removeChild(tmpSvg);
+            return { left: b.x, top: b.y, width: b.width, height: b.height };
+        })();
         const placed = [];
         let skipped = 0;
         const maxAttempts = params.allow_overlap ? 5000 : 500;
@@ -428,10 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 for (const pt of pointsToTest) {
-                    const svgPt = testSvg.createSVGPoint();
-                    svgPt.x = pt.x;
-                    svgPt.y = pt.y;
-                    if (!testPath.isPointInFill(svgPt)) {
+                    if (!hitCtx.isPointInPath(containerPath2D, pt.x, pt.y)) {
                         inside = false;
                         break;
                     }
@@ -492,7 +501,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const containerObj = currentSelection.find(i => i.id === containerId);
         if (!containerObj) return;
 
-        const bbox = containerObj.bbox;
+        // Compute document-space bbox from path_d (same reason as in calculatePlacement).
+        // containerObj.bbox is in local space; path_d is in document space — they must match.
+        const bbox = (() => {
+            const tmpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            tmpSvg.style.cssText = 'position:absolute;left:-9999px;top:-9999px;overflow:visible;visibility:hidden;';
+            const tmpPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            tmpPath.setAttribute('d', containerObj.path_d);
+            tmpSvg.appendChild(tmpPath);
+            document.body.appendChild(tmpSvg);
+            const b = tmpPath.getBBox();
+            document.body.removeChild(tmpSvg);
+            return { left: b.x, top: b.y, width: b.width, height: b.height };
+        })();
         const vb = `${bbox.left} ${bbox.top} ${bbox.width} ${bbox.height}`;
 
         // Render exactly the placed objects
